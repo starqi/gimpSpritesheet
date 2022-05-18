@@ -2,20 +2,30 @@
 
 from gimpfu import *
 
-def from_sheet(image, sprites):
+def from_sheet(image, numSpritesHorizontal, numSpritesVertical, firstImageIsFirstLayer):
     layer = image.layers[0]
-    width = layer.width
-    frameWidth = int(width / sprites)
+    frameWidth = int(layer.width / numSpritesHorizontal)
+    frameHeight = int(layer.height / numSpritesVertical)
 
     pdb.gimp_undo_push_group_start(image)
 
-    for i in reversed(range(int(sprites))):
-        d = layer.copy()
-        image.add_layer(d,0)
-        d.resize(frameWidth,image.height,i * -frameWidth,0)
-        d.translate(i * -frameWidth,0)
-    image.resize(frameWidth,image.height,0,0)
+    vRange = range(int(numSpritesVertical))
+    hRange = range(int(numSpritesHorizontal))
+
+    if firstImageIsFirstLayer:
+        vRange = reversed(vRange)
+        hRange = reversed(hRange)
+
+    for j in vRange:
+        for i in hRange:
+            d = layer.copy()
+            image.add_layer(d,0)
+            d.resize(frameWidth,frameHeight,i * -frameWidth,j * -frameHeight)
+            d.translate(i * -frameWidth,j * -frameHeight)
+
+    image.resize(frameWidth,frameHeight,0,0)
     image.remove_layer(layer)
+
     pdb.gimp_undo_push_group_end(image)
 
 
@@ -23,11 +33,13 @@ register("python-fu-from-sheet",
          "turns a sprite sheet into a bunch of layers",
          "yee",
          "daly","daly","2018",
-         "from sheet",
+         "Sheet to Layers",
          "RGB*",
          [
             (PF_IMAGE, "image", "Input image", None),
-            (PF_SPINNER, "sprites", "Number of sprites", 1, (2,100,1))
+            (PF_SPINNER, "numSpritesHorizontal", "Number of sprites horizontally", 1, (1,100,1)),
+            (PF_SPINNER, "numSpritesVertical", "Number of sprites vertically", 1, (1,100,1)),
+            (PF_BOOL, "firstImageIsFirstLayer", "First image (top-left) is first layer", False)
          ],
          [],
          from_sheet,
